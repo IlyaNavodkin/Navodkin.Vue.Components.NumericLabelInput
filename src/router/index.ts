@@ -61,6 +61,11 @@ const router = createRouter({
       name: 'SvelteCurrency',
       component: () => import('../views/MoneyInputSvelteCurrencyExample.vue'),
     },
+    {
+      path: '/deepseek-example',
+      name: 'DeepSeekExample',
+      component: () => import('../views/MoneyInputDeepSeekExample.vue'),
+    },
   ],
 })
 

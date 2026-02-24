@@ -16,9 +16,22 @@ const cases = ref([
     title: "Базовый",
     description: "Валюта $, 2 знака, разделители групп",
     props: {
+      groupSeparator: " ",
       suffix: " $",
       decimalScale: 2,
       allowNegativeValue: false,
+    },
+    state: createCaseState(),
+  },
+  {
+    id: "basic",
+    title: "Метры",
+    description: "Метры",
+    props: {
+      groupSeparator: " ",
+      suffix: " м2",
+      decimalScale: 6,
+      allowNegativeValue: true,
     },
     state: createCaseState(),
   },
@@ -62,7 +75,7 @@ const cases = ref([
     title: "Без десятичных",
     description: "allowDecimals = false",
     props: {
-      suffix: "$ ",
+      suffix: " $",
       allowDecimals: false,
       allowNegativeValue: false,
     },

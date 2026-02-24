@@ -6,6 +6,7 @@ export interface MoneyInputProps {
   canBeNegative: boolean
   max?: number
   min?: number
+  step?: number
 }
 
 export interface MoneyInputEmits {

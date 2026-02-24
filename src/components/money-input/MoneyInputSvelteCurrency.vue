@@ -262,7 +262,7 @@ function handleBlur(event: FocusEvent): void {
 
   const fixedDecimals = fixedDecimalValue(valueOnly, decimalSeparator.value, props.fixedDecimalLength);
 
-  const newValue = padTrimValue(
+  let newValue = padTrimValue(
     fixedDecimals,
     decimalSeparator.value,
     props.decimalScale !== undefined ? props.decimalScale : props.fixedDecimalLength

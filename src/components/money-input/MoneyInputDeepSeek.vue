@@ -46,6 +46,22 @@ const displayValue = computed(() => {
   return formatNumber(props.value, props.currencySymbol);
 });
 
+const clampValue = (num: number): number => {
+  let clamped = num;
+  if (!props.canBeNegative && clamped < 0) clamped = 0;
+  if (props.min !== undefined && clamped < props.min) clamped = props.min;
+  if (props.max !== undefined && clamped > props.max) clamped = props.max;
+  return clamped;
+};
+
+const isValueInRange = (num: number | null): boolean => {
+  if (num === null || isNaN(num)) return true;
+  if (!props.canBeNegative && num < 0) return false;
+  if (props.min !== undefined && num < props.min) return false;
+  if (props.max !== undefined && num > props.max) return false;
+  return true;
+};
+
 const parseInputString = (str: string): number | null => {
   let cleaned = str.replace(/[^\d.,-]/g, "");
   cleaned = cleaned.replace(/,/g, ".");
@@ -68,9 +84,12 @@ const parseInputString = (str: string): number | null => {
     num = Math.round(num * factor) / factor;
   }
   if (!props.canBeNegative && num < 0) num = Math.abs(num);
-  if (props.min !== undefined && num < props.min) num = props.min;
-  if (props.max !== undefined && num > props.max) num = props.max;
   return num;
+};
+
+const getClampedValue = (num: number | null): number | null => {
+  if (num === null || isNaN(num)) return null;
+  return clampValue(num);
 };
 
 function filterForDecimalPlaces(str: string): string {
@@ -102,10 +121,37 @@ function onInput(e: Event) {
   const rawValue = input.value;
   cursorPosition.value = input.selectionStart;
   const filtered = filterForDecimalPlaces(rawValue);
+  
+  const parsedNumber = parseInputString(filtered);
+  
+  // Проверяем, выходит ли значение за пределы min/max
+  if (!isValueInRange(parsedNumber)) {
+    // Если выходит за пределы — не даём вводить, восстанавливаем предыдущее значение
+    const clampedValue = getClampedValue(parsedNumber);
+    if (clampedValue !== null) {
+      input.value = clampedValue.toString();
+      emit("update:inputString", clampedValue.toString());
+      emit("update:value", clampedValue);
+    } else {
+      input.value = props.value?.toString() ?? "";
+      emit("update:inputString", props.inputString);
+      emit("update:value", props.value);
+    }
+    nextTick(() => {
+      if (inputRef.value && cursorPosition.value !== null) {
+        const newPosition = Math.min(
+          cursorPosition.value,
+          inputRef.value.value.length
+        );
+        inputRef.value.setSelectionRange(newPosition, newPosition);
+      }
+    });
+    return;
+  }
+  
   if (filtered !== rawValue) {
     input.value = filtered;
   }
-  const parsedNumber = parseInputString(filtered);
   let newInputString = filtered;
   if (parsedNumber !== null) {
     newInputString = parsedNumber.toString();
@@ -128,8 +174,24 @@ function onPaste(e: ClipboardEvent) {
   const text = e.clipboardData?.getData("text") ?? "";
   const filtered = filterForDecimalPlaces(text);
   if (inputRef.value) {
-    inputRef.value.value = filtered;
     const parsed = parseInputString(filtered);
+    
+    // Проверяем, выходит ли значение за пределы min/max
+    if (!isValueInRange(parsed)) {
+      const clampedValue = getClampedValue(parsed);
+      if (clampedValue !== null) {
+        inputRef.value.value = clampedValue.toString();
+        emit("update:inputString", clampedValue.toString());
+        emit("update:value", clampedValue);
+      } else {
+        inputRef.value.value = props.value?.toString() ?? "";
+        emit("update:inputString", props.inputString);
+        emit("update:value", props.value);
+      }
+      return;
+    }
+    
+    inputRef.value.value = filtered;
     emit("update:inputString", filtered);
     emit("update:value", parsed);
   }
@@ -138,7 +200,11 @@ function onPaste(e: ClipboardEvent) {
 function onBlur(e: FocusEvent) {
   isFocused.value = false;
   if (props.value !== null) {
-    emit("update:inputString", props.value.toFixed(props.decimalPlaces));
+    const clampedValue = clampValue(props.value);
+    if (clampedValue !== props.value) {
+      emit("update:value", clampedValue);
+    }
+    emit("update:inputString", clampedValue.toFixed(props.decimalPlaces));
   } else {
     emit("update:inputString", "");
   }
@@ -152,6 +218,7 @@ function onFocus(e: FocusEvent) {
 
 function onKeyDown(e: KeyboardEvent) {
   const input = e.target as HTMLInputElement;
+  
   if (e.key === "." || e.key === ",") {
     if (props.decimalPlaces === 0) {
       e.preventDefault();
