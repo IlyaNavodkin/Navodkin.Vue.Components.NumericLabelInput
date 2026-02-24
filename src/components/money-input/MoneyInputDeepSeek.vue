@@ -152,11 +152,8 @@ function onInput(e: Event) {
   if (filtered !== rawValue) {
     input.value = filtered;
   }
-  let newInputString = filtered;
-  if (parsedNumber !== null) {
-    newInputString = parsedNumber.toString();
-  }
-  emit("update:inputString", newInputString);
+  // Используем filtered напрямую чтобы сохранить trailing zeros (1234567.0 не превратится в 1234567)
+  emit("update:inputString", filtered);
   emit("update:value", parsedNumber);
   nextTick(() => {
     if (inputRef.value && cursorPosition.value !== null) {
